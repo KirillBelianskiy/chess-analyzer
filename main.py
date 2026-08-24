@@ -1,16 +1,51 @@
-# This is a sample Python script.
+from fastapi import FastAPI, HTTPException
 
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
+from api.mappers import map_analyzed_game, map_parse_response
+from schemas.analysis import AnalyzedGame
+from schemas.parse import ParseResponse, PGNGameRequest
+from services import exceptions
+from services.analyzer import step_by_step_analyzer
+from services.parser import process_and_validate_pgn
+
+app = FastAPI()
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
+@app.get("/")
+def main_page() -> dict:
+    return {"status": "ok"}
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+@app.post("/parse")
+def parse(pgn: PGNGameRequest) -> ParseResponse:
+    pgn = pgn.pgn
+    try:
+        parse_pgn = process_and_validate_pgn(pgn)
+    # TODO: для каждой ошибки подумать, какой код она должна возвращать
+    except exceptions.IncorrectPGNFormatError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except exceptions.NoMovesFoundError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except exceptions.InvalidBoardError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
+    return map_parse_response(parse_pgn)
+
+
+@app.post("/analyze")
+def analyze(pgn: PGNGameRequest) -> AnalyzedGame:
+    pgn = pgn.pgn
+    try:
+        parse_pgn = process_and_validate_pgn(pgn)
+    # TODO: для каждой ошибки подумать, какой код она должна возвращать
+    except exceptions.IncorrectPGNFormatError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except exceptions.NoMovesFoundError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except exceptions.InvalidBoardError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    analyzed_game = step_by_step_analyzer(
+        parse_pgn["initial_board"], parse_pgn["moves"]
+    )
+    return map_analyzed_game(analyzed_game)
