@@ -4,21 +4,23 @@ import chess
 import chess.pgn
 
 from services.exceptions import (
+    GameNotFoundError,
     IncorrectPGNFormatError,
     InvalidBoardError,
     NoMovesFoundError,
-    PGNValidationError,
 )
 
 
 def process_and_validate_pgn(pgn: str) -> dict:
-    pgn_io = io.StringIO(
-        pgn
-    )  # make it because method read_game has to file-stream like types
+    """Parse and validate a PGN containing exactly one game."""
+    pgn_io = io.StringIO(pgn)
     game = chess.pgn.read_game(pgn_io)
 
     if game is None:
-        raise PGNValidationError("Game was not found.")
+        raise GameNotFoundError("PGN was not found.")
+
+    if chess.pgn.read_game(pgn_io) is not None:
+        raise IncorrectPGNFormatError("Only one PGN game is supported.")
 
     default_game = chess.pgn.Game()
     is_default_headers = dict(game.headers) == dict(default_game.headers)
