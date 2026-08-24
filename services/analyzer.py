@@ -48,12 +48,12 @@ def step_by_step_analyzer(board: Board, moves: list[Move]) -> list[dict]:
                 "ply_index": i,
                 "move_number": move_number,
                 "move": piece_move,
+                "best_line": best_line,
                 "score": (best_score, played_score),
                 "is_white": color,
-                "best_move": best_move,
-                "best_line": best_line,
-                "played_line": played_line,
                 "piece": piece,
+                "best_move": best_move,
+                "played_line": played_line,
             }
             analyse_before = analyse_after
             best_score = analyse_after["score"].pov(not color)
