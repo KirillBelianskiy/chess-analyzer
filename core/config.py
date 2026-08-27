@@ -2,8 +2,8 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    llm_api_key: str
-    redis_url: str = "redis://localhost:6379"
+    # llm_api_key: str
+    # redis_url: str = "redis://localhost:6379"
     stockfish_path: str = "stockfish"
 
     class Config:

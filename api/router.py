@@ -32,16 +32,16 @@ def main_page() -> dict:
 
 
 @router.post("/parse")
-def parse(pgn: PGNGameRequest) -> ParseResponse:
-    pgn = pgn.pgn
+def parse(body: PGNGameRequest) -> ParseResponse:
+    pgn = body.pgn
     parsed_pgn = check_and_validate_pgn(pgn)
 
     return map_parse_response(parsed_pgn)
 
 
 @router.post("/analyze")
-def analyze(pgn: PGNGameRequest) -> AnalyzedGame:
-    pgn = pgn.pgn
+def analyze(body: PGNGameRequest) -> AnalyzedGame:
+    pgn = body.pgn
     parsed_pgn = check_and_validate_pgn(pgn)
 
     analyzed_game = analyzer(parsed_pgn["initial_board"], parsed_pgn["moves"])
