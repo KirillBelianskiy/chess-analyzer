@@ -3,6 +3,9 @@ from unittest.mock import MagicMock
 import chess
 import chess.engine
 import pytest
+from fastapi.testclient import TestClient
+
+from main import app
 
 
 @pytest.fixture
@@ -22,6 +25,11 @@ def correct_pgn():
 @pytest.fixture
 def incorrect_pgn():
     return "a random text which is not a PGN"
+
+
+@pytest.fixture
+def empty_pgn():
+    return " "
 
 
 @pytest.fixture
@@ -93,3 +101,7 @@ def pgn_with_comments_and_variations():
 @pytest.fixture
 def engine_mock() -> MagicMock:
     return MagicMock(spec=chess.engine.SimpleEngine)
+
+@pytest.fixture
+def client() -> TestClient:
+    return TestClient(app)

@@ -12,7 +12,7 @@ def check_and_validate_pgn(pgn: str) -> dict:
     try:
         parse_pgn = process_and_validate_pgn(pgn)
     except exceptions.GameNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
     except exceptions.IncorrectPGNFormatError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except exceptions.NoMovesFoundError as e:
