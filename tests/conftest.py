@@ -1,3 +1,7 @@
+from unittest.mock import MagicMock
+
+import chess
+import chess.engine
 import pytest
 
 
@@ -84,3 +88,8 @@ def pgn_with_comments_and_variations():
 1. e4 {King's pawn opening} e5 (1... c5 {Sicilian Defence})
 2. Nf3 Nc6 3. Bb5 a6 *
 """
+
+
+@pytest.fixture
+def engine_mock() -> MagicMock:
+    return MagicMock(spec=chess.engine.SimpleEngine)

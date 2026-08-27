@@ -4,7 +4,7 @@ from api.mappers import map_analyzed_game, map_parse_response
 from schemas.analysis import AnalyzedGame
 from schemas.parse import ParseResponse, PGNGameRequest
 from services import exceptions
-from services.analyzer import step_by_step_analyzer
+from services.analyzer import analyzer
 from services.parser import process_and_validate_pgn
 
 app = FastAPI()
@@ -45,7 +45,7 @@ def analyze(pgn: PGNGameRequest) -> AnalyzedGame:
     except exceptions.InvalidBoardError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    analyzed_game = step_by_step_analyzer(
+    analyzed_game = analyzer(
         parse_pgn["initial_board"], parse_pgn["moves"]
     )
     return map_analyzed_game(analyzed_game)
