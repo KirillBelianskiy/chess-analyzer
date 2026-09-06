@@ -1,7 +1,8 @@
 # Chess PGN Analyzer
 
-Backend API for parsing one chess game in PGN format and analysing every played
-move with Stockfish.
+Web application for parsing one chess game in PGN format and analysing every
+played move with Stockfish. The repository is split into `backend/` and
+`frontend/` projects.
 
 The project exposes a synchronous FastAPI API. It does not require LLM, Redis,
 Docker, a database, or authentication.
@@ -21,6 +22,7 @@ brew install stockfish
 ## Run locally
 
 ```bash
+cd backend
 uv sync
 uv run fastapi dev main.py
 ```
@@ -36,7 +38,43 @@ http://127.0.0.1:8000/docs
 Run the tests:
 
 ```bash
+cd backend
 uv run pytest -q
+```
+
+## Frontend
+
+The MVP frontend uses React, Vite, and `chess.js`. Keep the FastAPI server
+running on `http://127.0.0.1:8000`, then start the frontend in a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://127.0.0.1:5173`. The Vite development server proxies `/parse` and
+`/analyze` to the local FastAPI server, so no backend CORS changes are needed.
+The light and dark interfaces follow the Penpot `Components & Foundations`
+frames. The LLM panel displays an unavailable state: the backend does not expose
+a chat API, so the frontend does not simulate AI replies. Stockfish evaluations,
+best moves and principal variations appear below the board.
+The board automatically shows the next PGN move with a white arrow and,
+after analysis, Stockfish's best move for that position with a blue arrow.
+No arrows appear after the final move. Arrow keys, Home and End navigate the game.
+
+Run frontend regression tests with Node.js 22.18+:
+
+```bash
+cd frontend
+npm test
+```
+
+Create a production build with:
+
+```bash
+cd frontend
+npm run build
 ```
 
 ## API overview
