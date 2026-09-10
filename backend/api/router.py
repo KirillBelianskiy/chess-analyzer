@@ -4,7 +4,7 @@ from api.mappers import map_analyzed_game, map_parse_response
 from schemas.analysis import AnalyzedGame
 from schemas.parse import ParseResponse, PGNGameRequest
 from services import exceptions
-from services.analyzer import analyzer
+from services.analyzer import analyzer, wdl_counting
 from services.parser import process_and_validate_pgn
 
 
@@ -45,4 +45,5 @@ def analyze(body: PGNGameRequest) -> AnalyzedGame:
     parsed_pgn = check_and_validate_pgn(pgn)
 
     analyzed_game = analyzer(parsed_pgn["initial_board"], parsed_pgn["moves"])
-    return map_analyzed_game(analyzed_game)
+    analyzed_game_with_wdl = wdl_counting(analyzed_game)
+    return map_analyzed_game(analyzed_game_with_wdl)
