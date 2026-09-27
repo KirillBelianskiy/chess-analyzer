@@ -1,7 +1,14 @@
 import chess.engine
 
-from schemas.analysis import AnalyzedGame, AnalyzedMove, MoveScore, ScoreValue, Quality, WDL
-from schemas.parse import ParseResponse
+from app.schemas.analysis import (
+    WDL,
+    AnalyzedGame,
+    AnalyzedMove,
+    MoveScore,
+    Quality,
+    ScoreValue,
+)
+from app.schemas.parse import ParseResponse
 
 
 def map_score(score: chess.engine.Score) -> ScoreValue:
@@ -31,6 +38,7 @@ def map_quality(quality: dict) -> Quality:
         played_expectation=quality["played_expectation"],
         best_expectation=quality["best_expectation"],
         expectation_loss=quality["expectation_loss"],
+        win_probability_loss=quality["win_probability_loss"],
         cp_loss=quality["cp_loss"],
         classification=quality["classification"],
     )
@@ -76,5 +84,4 @@ def map_parse_response(response: dict) -> ParseResponse:
         initial_fen=map_board(response["initial_board"]),
         moves=map_moves(response["moves"])
     )
-
 

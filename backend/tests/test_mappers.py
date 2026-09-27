@@ -2,9 +2,31 @@ import chess
 import pytest
 from chess.engine import Cp, Mate, MateGiven, Score
 
-from api import mappers
-from schemas.analysis import AnalyzedGame, AnalyzedMove, MoveScore, ScoreValue
-from schemas.parse import ParseResponse
+from app.api import mappers
+from app.schemas.analysis import Quality, WDL, ScoreValue, MoveScore, AnalyzedMove, AnalyzedGame
+from app.schemas.parse import ParseResponse
+
+QUALITY_DICT = {
+    "best_wdl": {"win": 0.4, "draw": 0.4, "loss": 0.2},
+    "played_wdl": {"win": 0.35, "draw": 0.4, "loss": 0.25},
+    "played_expectation": 0.55,
+    "best_expectation": 0.6,
+    "expectation_loss": 0.05,
+    "win_probability_loss": 0.04,
+    "cp_loss": None,
+    "classification": "good",
+}
+
+QUALITY_MODEL = Quality(
+    best_wdl=WDL(win=0.4, draw=0.4, loss=0.2),
+    played_wdl=WDL(win=0.35, draw=0.4, loss=0.25),
+    played_expectation=0.55,
+    best_expectation=0.6,
+    expectation_loss=0.05,
+    win_probability_loss=0.04,
+    cp_loss=None,
+    classification="good",
+)
 
 
 @pytest.mark.parametrize(
@@ -35,19 +57,20 @@ def test_map_analyzed_move_maps_all_fields() -> None:
     analyzed_move = {
         "ply_index": 0,
         "move_number": 1,
-        "move": "e2e4",
+        "played_move": "e2e4",
         "best_move": "d2d4",
         "score": (Cp(25), Mate(-3)),
         "is_white": True,
         "piece": "P",
         "best_line": ["d2d4", "d7d5"],
         "played_line": ["e2e4", "e7e5"],
+        "quality": QUALITY_DICT,
     }
 
     assert mappers.map_analyzed_move(analyzed_move) == AnalyzedMove(
         ply_index=0,
         move_number=1,
-        move="e2e4",
+        played_move="e2e4",
         best_move="d2d4",
         score=MoveScore(
             best=ScoreValue(centipawns=25),
@@ -57,6 +80,7 @@ def test_map_analyzed_move_maps_all_fields() -> None:
         piece="P",
         best_line=["d2d4", "d7d5"],
         played_line=["e2e4", "e7e5"],
+        quality=QUALITY_MODEL,
     )
 
 
@@ -65,31 +89,33 @@ def test_map_analyzed_game_preserves_move_order() -> None:
         {
             "ply_index": 0,
             "move_number": 1,
-            "move": "e2e4",
+            "played_move": "e2e4",
             "best_move": None,
             "score": (Cp(20), Cp(10)),
             "is_white": True,
             "piece": "P",
             "best_line": None,
             "played_line": None,
+            "quality": QUALITY_DICT,
         },
         {
             "ply_index": 1,
             "move_number": 1,
-            "move": "e7e5",
+            "played_move": "e7e5",
             "best_move": "c7c5",
             "score": (Cp(-10), Cp(-30)),
             "is_white": False,
             "piece": "p",
             "best_line": ["c7c5"],
             "played_line": ["e7e5"],
+            "quality": QUALITY_DICT,
         },
     ]
 
     result = mappers.map_analyzed_game(analyzed_game)
 
     assert isinstance(result, AnalyzedGame)
-    assert [move.move for move in result.moves] == ["e2e4", "e7e5"]
+    assert [move.played_move for move in result.moves] == ["e2e4", "e7e5"]
     assert result.moves[1].score.played == ScoreValue(centipawns=-30)
 
 

@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException
 
-from api.mappers import map_analyzed_game, map_parse_response
-from schemas.analysis import AnalyzedGame
-from schemas.parse import ParseResponse, PGNGameRequest
-from services import exceptions
-from services.analyzer import analyzer, wdl_counting
-from services.parser import process_and_validate_pgn
+from app.api.mappers import map_analyzed_game, map_parse_response
+from app.schemas.analysis import AnalyzedGame
+from app.schemas.parse import ParseResponse, PGNGameRequest
+from app.services import exceptions
+from app.services.analyzer import analyzer, wdl_counting
+from app.services.parser import process_and_validate_pgn
 
 
 def check_and_validate_pgn(pgn: str) -> dict:

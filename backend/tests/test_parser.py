@@ -1,12 +1,7 @@
 import pytest
 
-from services.exceptions import (
-    GameNotFoundError,
-    IncorrectPGNFormatError,
-    InvalidBoardError,
-    NoMovesFoundError,
-)
-from services.parser import process_and_validate_pgn
+from app.services.exceptions import IncorrectPGNFormatError, NoMovesFoundError, InvalidBoardError, GameNotFoundError
+from app.services.parser import process_and_validate_pgn
 
 
 def test_correct_pgn_format(correct_pgn):

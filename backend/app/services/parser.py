@@ -3,7 +3,7 @@ import io
 import chess
 import chess.pgn
 
-from services.exceptions import (
+from app.services.exceptions import (
     GameNotFoundError,
     IncorrectPGNFormatError,
     InvalidBoardError,

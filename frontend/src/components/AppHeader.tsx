@@ -8,6 +8,7 @@ export function AppHeader({ dark, onToggleTheme, onHome }: Props) {
   return (
     <header className="app-header">
       <a className="app-wordmark" href="#app" aria-label="Moves analyzer home" onClick={onHome}>
+        <span className="wordmark-board" aria-hidden="true"><i /><i /><i /><i /></span>
         <span>Moves analyzer</span>
       </a>
 

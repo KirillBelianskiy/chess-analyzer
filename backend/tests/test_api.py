@@ -1,10 +1,11 @@
 from unittest.mock import MagicMock
 
 import chess
-from chess.engine import Cp
+import pytest
+from chess.engine import Cp, Wdl
 from fastapi.testclient import TestClient
 
-import api.router as router_module
+import app.api.router as router_module
 
 
 def test_healthcheck(client: TestClient) -> None:
@@ -81,9 +82,14 @@ def test_analyze_correct_pgn_returns_analyzed_game(client: TestClient, monkeypat
             {
                 "ply_index": 0,
                 "move_number": 1,
-                "move": "e2e4",
+                "played_move": "e2e4",
                 "best_move": "d2d4",
                 "score": (Cp(30), Cp(10)),
+                "wdl": (
+                    Wdl(400, 400, 200),
+                    Wdl(350, 400, 250),
+                ),
+                "expectation": (0.6, 0.55),
                 "is_white": True,
                 "piece": "P",
                 "best_line": ["d2d4", "d7d5"],
@@ -91,7 +97,7 @@ def test_analyze_correct_pgn_returns_analyzed_game(client: TestClient, monkeypat
             }
         ]
     )
-    monkeypatch.setattr(router_module, "analyzer", analyzer_mock)
+    monkeypatch.setattr(router_module, name="analyzer", value=analyzer_mock)
 
     response = client.post("/analyze", json={"pgn": "1. e4 *"})
 
@@ -101,11 +107,21 @@ def test_analyze_correct_pgn_returns_analyzed_game(client: TestClient, monkeypat
             {
                 "ply_index": 0,
                 "move_number": 1,
-                "move": "e2e4",
+                "played_move": "e2e4",
                 "best_move": "d2d4",
                 "score": {
                     "best": {"centipawns": 30, "mate_in": None},
                     "played": {"centipawns": 10, "mate_in": None},
+                },
+                "quality": {
+                    "best_wdl": {"win": 0.4, "draw": 0.4, "loss": 0.2},
+                    "played_wdl": {"win": 0.35, "draw": 0.4, "loss": 0.25},
+                    "played_expectation": 0.55,
+                    "best_expectation": 0.6,
+                    "expectation_loss": pytest.approx(0.05),
+                    "win_probability_loss": pytest.approx(0.0183, abs=0.0001),
+                    "cp_loss": 20,
+                    "classification": "excellent",
                 },
                 "is_white": True,
                 "piece": "P",

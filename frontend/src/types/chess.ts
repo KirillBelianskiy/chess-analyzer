@@ -8,12 +8,26 @@ export type ParseResponse = {
 
 export type ScoreValue = { centipawns: number | null; mate_in: number | null }
 
+export type WDL = { win: number; draw: number; loss: number }
+
+export type MoveQuality = {
+  best_wdl: WDL
+  played_wdl: WDL
+  played_expectation: number
+  best_expectation: number
+  expectation_loss: number
+  win_probability_loss: number
+  cp_loss: number | null
+  classification: string
+}
+
 export type AnalysisMove = {
   ply_index: number
   move_number: number
-  move: string
+  played_move: string
   best_move: string | null
   score: { best: ScoreValue; played: ScoreValue }
+  quality: MoveQuality
   is_white: boolean
   piece: string
   best_line: string[] | null

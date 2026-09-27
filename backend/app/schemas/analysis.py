@@ -10,6 +10,7 @@ class MoveScore(BaseModel):
     best: ScoreValue
     played: ScoreValue
 
+
 class WDL(BaseModel):
     win: float
     draw: float
@@ -21,6 +22,7 @@ class Quality(BaseModel):
     played_expectation: int | float
     best_expectation: int | float
     expectation_loss: float
+    win_probability_loss: float
     cp_loss: float | None
     classification: str
 

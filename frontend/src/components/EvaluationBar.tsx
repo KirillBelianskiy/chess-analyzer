@@ -1,20 +1,18 @@
 import { scoreLabel, scoreToWhitePerspective } from '../chess/gameModel'
+import { whiteExpectation } from '../chess/moveQuality'
 import type { AnalysisMove } from '../types/chess'
 
-type Props = { analysis?: AnalysisMove; analyzing: boolean }
+type Props = { analysis?: AnalysisMove }
 
 function whiteShare(analysis?: AnalysisMove) {
   if (!analysis) return 50
-  const score = scoreToWhitePerspective(analysis.score.played, analysis.is_white)
-  if (score.mate_in !== null) return score.mate_in < 0 || Object.is(score.mate_in, -0) ? 6 : 94
-  if (score.centipawns === null) return 50
-  return Math.max(6, Math.min(94, 50 + 44 * Math.tanh(score.centipawns / 600)))
+  return whiteExpectation(analysis.quality.played_expectation, analysis.is_white) * 100
 }
 
-export function EvaluationBar({ analysis, analyzing }: Props) {
+export function EvaluationBar({ analysis }: Props) {
   const score = analysis ? scoreToWhitePerspective(analysis.score.played, analysis.is_white) : undefined
   const white = whiteShare(analysis)
-  const label = analyzing ? '…' : score ? scoreLabel(score) : '—'
+  const label = score ? scoreLabel(score) : '—'
 
   return (
     <div className="evaluation-bar" aria-label={`Position evaluation ${label}`}>

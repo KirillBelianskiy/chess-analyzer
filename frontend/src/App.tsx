@@ -3,9 +3,9 @@ import { analyzeGame, parseGame } from './api/chessApi'
 import { buildGameModel, scoreLabel, scoreToWhitePerspective } from './chess/gameModel'
 import { AnalysisPanel } from './components/AnalysisPanel'
 import { AppHeader } from './components/AppHeader'
-import { ChatPanel } from './components/ChatPanel'
 import { ChessBoard } from './components/ChessBoard'
 import { EvaluationBar } from './components/EvaluationBar'
+import { ExpectationChart } from './components/ExpectationChart'
 import { MoveList } from './components/MoveList'
 import { MoveNavigation } from './components/MoveNavigation'
 import { PGNInput } from './components/PGNInput'
@@ -29,6 +29,7 @@ function App() {
   const [game, setGame] = useState<GameModel | null>(null)
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null)
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0)
+  const [orientation, setOrientation] = useState<'white' | 'black'>('white')
   const [error, setError] = useState<string | null>(null)
   const requestVersion = useRef(0)
   const moveListRef = useRef<HTMLDivElement>(null)
@@ -46,16 +47,15 @@ function App() {
 
   const selectedMoveLabel = currentMove ? `${currentMove.number}${currentMove.color === 'b' ? '…' : '.'} ${currentMove.san}` : 'Start position'
   const boardContext = useMemo(() => {
-    if (!currentMove) return analyzing ? 'Starting position · evaluating…' : 'Starting position'
-    const base = `Position after ${selectedMoveLabel}`
-    if (analyzing) return `${base} · evaluating…`
-    if (!currentAnalysis) return base
+    const title = currentMove ? `Position after ${selectedMoveLabel}` : 'Starting position'
+    if (analyzing) return { title, detail: 'Evaluating…' }
+    if (!currentAnalysis) return { title, detail: null }
     const score = scoreToWhitePerspective(currentAnalysis.score.played, currentAnalysis.is_white)
     const label = scoreLabel(score)
     const side = score.mate_in !== null
       ? score.mate_in < 0 || Object.is(score.mate_in, -0) ? 'for Black' : 'for White'
       : (score.centipawns ?? 0) < 0 ? 'for Black' : (score.centipawns ?? 0) > 0 ? 'for White' : 'equal'
-    return `${base} · ${label} ${side}`
+    return { title, detail: `${label} ${side}` }
   }, [analyzing, currentAnalysis, currentMove, selectedMoveLabel])
 
   useEffect(() => {
@@ -94,6 +94,7 @@ function App() {
     setGame(null)
     setAnalysis(null)
     setCurrentMoveIndex(0)
+    setOrientation('white')
     setError(null)
     setStatus('idle')
   }
@@ -136,6 +137,7 @@ function App() {
       setGame(buildGameModel(parsed))
       setAnalysis(null)
       setCurrentMoveIndex(0)
+      setOrientation('white')
       setStatus('parsed')
     } catch (caught) {
       if (version !== requestVersion.current) return
@@ -171,20 +173,23 @@ function App() {
       {!game ? (
         <PGNInput pgn={pgn} parsing={parsing} error={error} onChange={handlePgnChange} onFile={handleFile} onParse={handleParse} />
       ) : (
-        <main className="analysis-workspace">
+        <main className={`analysis-workspace${analysis ? ' has-analysis' : ''}`}>
           <aside className="moves-column">
             {analyzing && (
               <div className="analyzing-state" aria-live="polite"><span className="button-spinner" /> Analyzing game…</div>
             )}
             {error && <div className="error-message compact" role="alert"><strong>Analysis failed</strong><span>{error}</span></div>}
 
+            <div className="game-summary" aria-label="Game players">
+              <div><span className="piece-dot white-piece" /><strong>{game.headers.White || 'White'}</strong></div>
+              <div><span className="piece-dot black-piece" /><strong>{game.headers.Black || 'Black'}</strong></div>
+              {game.headers.Result && <span className="game-result">{game.headers.Result}</span>}
+            </div>
             <section className="moves-panel">
-              <h1>Moves · selected: {selectedMoveLabel}</h1>
+              <header className="move-list-header"><h1>Moves</h1><p>{selectedMoveLabel}</p></header>
               <div className="move-list-scroll" ref={moveListRef}>
                 <MoveList
                   moves={game.displayMoves}
-                  analysis={analysis?.moves ?? []}
-                  status={status}
                   currentMoveIndex={currentMoveIndex}
                   onSelect={setCurrentMoveIndex}
                 />
@@ -193,28 +198,37 @@ function App() {
           </aside>
 
           <section className="board-panel">
-            <h1>{boardContext}</h1>
-            <div className="board-and-evaluation">
-              <EvaluationBar analysis={currentAnalysis} analyzing={analyzing} />
+            <h1 className="position-heading"><span>{boardContext.title}</span>{boardContext.detail && <strong>{boardContext.detail}</strong>}</h1>
+            <div className={`board-and-evaluation${analysis ? ' with-evaluation' : ''}`}>
+              {analysis && <EvaluationBar analysis={currentAnalysis} />}
               <ChessBoard
                 fen={game.positions[currentMoveIndex]}
+                moveIndex={currentMoveIndex}
                 playedMove={currentMove}
-                arrowMove={nextMove?.uci}
-                arrowBest={nextAnalysis?.best_move}
+                nextMove={nextMove}
+                nextBestMove={nextAnalysis?.best_move}
+                moveClassification={currentAnalysis?.quality.classification}
+                orientation={orientation}
               />
             </div>
-            <MoveNavigation currentMoveIndex={currentMoveIndex} totalMoves={game.moves.length} onChange={setCurrentMoveIndex} />
+            <MoveNavigation
+              currentMoveIndex={currentMoveIndex}
+              totalMoves={game.moves.length}
+              orientation={orientation}
+              onChange={setCurrentMoveIndex}
+              onFlip={() => setOrientation((side) => side === 'white' ? 'black' : 'white')}
+            />
+            {analysis && (
+              <ExpectationChart moves={analysis.moves} currentMoveIndex={currentMoveIndex} onSelect={setCurrentMoveIndex} />
+            )}
             {!analysis && <div className="board-actions">
               <button className="primary-button" disabled={analyzing} onClick={handleAnalyze}>{analyzing ? 'Analyzing…' : 'Analyze'}</button>
             </div>}
-            <AnalysisPanel analysis={currentAnalysis} fen={positionBeforeMove} san={currentMove?.san} analyzing={analyzing} />
           </section>
 
-          <ChatPanel
-            analyzed={analyzed}
-            analyzing={analyzing}
-            contextLabel={selectedMoveLabel}
-          />
+          <aside className="inspector-panel">
+            <AnalysisPanel analysis={currentAnalysis} fen={positionBeforeMove} san={currentMove?.san} analyzing={analyzing} analyzed={analyzed} />
+          </aside>
         </main>
       )}
     </div>

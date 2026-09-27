@@ -1,14 +1,15 @@
 from unittest.mock import MagicMock
 
 import chess
-from chess.engine import Cp, MateGiven, PovScore
+from chess.engine import Cp, MateGiven, PovScore, PovWdl, Wdl
 
-from services.analyzer import step_by_step_analyzer
+from app.services.analyzer import step_by_step_analyzer
 
 
 def test_single_move(engine_mock: MagicMock) -> None:
     analyse_before = {
         "score": PovScore(Cp(50), chess.WHITE),
+        "wdl": PovWdl(Wdl(300, 400, 300), chess.WHITE),
         "pv": [
             chess.Move.from_uci("e2e4"),
             chess.Move.from_uci("e7e5"),
@@ -17,6 +18,7 @@ def test_single_move(engine_mock: MagicMock) -> None:
 
     analyse_after = {
         "score": PovScore(Cp(-30), chess.BLACK),
+        "wdl": PovWdl(Wdl(300, 400, 300), chess.BLACK),
         "pv": [
             chess.Move.from_uci("g8f6"),
             chess.Move.from_uci("c2c4"),
@@ -41,7 +43,7 @@ def test_single_move(engine_mock: MagicMock) -> None:
 
     assert analyzed_move["ply_index"] == 0
     assert analyzed_move["move_number"] == 1
-    assert analyzed_move["move"] == "d2d4"
+    assert analyzed_move["played_move"] == "d2d4"
     assert analyzed_move["is_white"] is True
     assert analyzed_move["piece"] == "P"
 
@@ -58,6 +60,7 @@ def test_single_move(engine_mock: MagicMock) -> None:
 def test_two_moves_switches_pov(engine_mock: MagicMock) -> None:
     analyse_before_1st_move = {
         "score": PovScore(Cp(50), chess.WHITE),
+        "wdl": PovWdl(Wdl(300, 400, 300), chess.WHITE),
         "pv": [
             chess.Move.from_uci("b1c3"),
             chess.Move.from_uci("g8f6"),
@@ -66,6 +69,7 @@ def test_two_moves_switches_pov(engine_mock: MagicMock) -> None:
 
     analyse_after_1st_move = {
         "score": PovScore(Cp(-30), chess.BLACK),
+        "wdl": PovWdl(Wdl(300, 400, 300), chess.BLACK),
         "pv": [
             chess.Move.from_uci("g8f6"),
             chess.Move.from_uci("b1c3"),
@@ -74,6 +78,7 @@ def test_two_moves_switches_pov(engine_mock: MagicMock) -> None:
 
     analyse_after_2nd_move = {
         "score": PovScore(Cp(70), chess.WHITE),
+        "wdl": PovWdl(Wdl(300, 400, 300), chess.WHITE),
         "pv": [
             chess.Move.from_uci("g1f3"),
             chess.Move.from_uci("b8c6"),
@@ -99,7 +104,7 @@ def test_two_moves_switches_pov(engine_mock: MagicMock) -> None:
     analyzed_move1 = result[0]
     assert analyzed_move1["ply_index"] == 0
     assert analyzed_move1["move_number"] == 1
-    assert analyzed_move1["move"] == "e2e4"
+    assert analyzed_move1["played_move"] == "e2e4"
     assert analyzed_move1["is_white"] is True
     assert analyzed_move1["best_move"] == "b1c3"
     assert analyzed_move1["best_line"] == ["b1c3", "g8f6"]
@@ -113,7 +118,7 @@ def test_two_moves_switches_pov(engine_mock: MagicMock) -> None:
     analyzed_move2 = result[1]
     assert analyzed_move2["ply_index"] == 1
     assert analyzed_move2["move_number"] == 1
-    assert analyzed_move2["move"] == "e7e5"
+    assert analyzed_move2["played_move"] == "e7e5"
     assert analyzed_move2["is_white"] is False
     assert analyzed_move2["best_move"] == "g8f6"
     assert analyzed_move2["best_line"] == ["g8f6", "b1c3"]
@@ -126,11 +131,19 @@ def test_two_moves_switches_pov(engine_mock: MagicMock) -> None:
 
 
 def test_custom_initial_position(engine_mock: MagicMock) -> None:
-    board = chess.Board("4k3/8/8/8/8/8/8/4K3 b - - 0 42")
+    board = chess.Board("4k3/7p/8/8/8/8/P7/4K3 b - - 0 42")
     moves = [chess.Move.from_uci("e8e7")]
     engine_mock.analyse.side_effect = [
-        {"score": PovScore(Cp(15), chess.BLACK), "pv": [moves[0]]},
-        {"score": PovScore(Cp(10), chess.WHITE), "pv": [chess.Move.from_uci("e1e2")]},
+        {
+            "score": PovScore(Cp(15), chess.BLACK),
+            "wdl": PovWdl(Wdl(300, 400, 300), chess.BLACK),
+            "pv": [moves[0]],
+        },
+        {
+            "score": PovScore(Cp(10), chess.WHITE),
+            "wdl": PovWdl(Wdl(300, 400, 300), chess.WHITE),
+            "pv": [chess.Move.from_uci("e1e2")],
+        },
     ]
 
     result = step_by_step_analyzer(board, moves, engine_mock)
@@ -147,8 +160,11 @@ def test_mate_given_without_pv_after_checkmate(engine_mock: MagicMock) -> None:
     )
     moves = [chess.Move.from_uci("h5f7")]
     engine_mock.analyse.side_effect = [
-        {"score": PovScore(Cp(800), chess.WHITE), "pv": [moves[0]]},
-        {"score": PovScore(MateGiven, chess.WHITE)},
+        {
+            "score": PovScore(Cp(800), chess.WHITE),
+            "wdl": PovWdl(Wdl(1000, 0, 0), chess.WHITE),
+            "pv": [moves[0]],
+        },
     ]
 
     result = step_by_step_analyzer(board, moves, engine_mock)
@@ -162,8 +178,14 @@ def test_without_pv(engine_mock: MagicMock) -> None:
     board = chess.Board()
     moves = [chess.Move.from_uci("e2e4")]
     engine_mock.analyse.side_effect = [
-        {"score": PovScore(Cp(10), chess.WHITE)},
-        {"score": PovScore(Cp(-5), chess.BLACK)},
+        {
+            "score": PovScore(Cp(10), chess.WHITE),
+            "wdl": PovWdl(Wdl(300, 400, 300), chess.WHITE),
+        },
+        {
+            "score": PovScore(Cp(-5), chess.BLACK),
+            "wdl": PovWdl(Wdl(300, 400, 300), chess.BLACK),
+        },
     ]
 
     result = step_by_step_analyzer(board, moves, engine_mock)
@@ -178,8 +200,16 @@ def test_truncates_pv(engine_mock: MagicMock) -> None:
     move = chess.Move.from_uci("e2e4")
     long_pv = [chess.Move.from_uci("a2a3")] * 9
     engine_mock.analyse.side_effect = [
-        {"score": PovScore(Cp(10), chess.WHITE), "pv": long_pv},
-        {"score": PovScore(Cp(-5), chess.BLACK), "pv": long_pv},
+        {
+            "score": PovScore(Cp(10), chess.WHITE),
+            "wdl": PovWdl(Wdl(300, 400, 300), chess.WHITE),
+            "pv": long_pv,
+        },
+        {
+            "score": PovScore(Cp(-5), chess.BLACK),
+            "wdl": PovWdl(Wdl(300, 400, 300), chess.BLACK),
+            "pv": long_pv,
+        },
     ]
 
     result = step_by_step_analyzer(board, [move], engine_mock)
@@ -197,9 +227,21 @@ def test_mutates_board(engine_mock: MagicMock) -> None:
         expected_board.push(move)
 
     engine_mock.analyse.side_effect = [
-        {"score": PovScore(Cp(0), chess.WHITE), "pv": [moves[0]]},
-        {"score": PovScore(Cp(0), chess.BLACK), "pv": [moves[1]]},
-        {"score": PovScore(Cp(0), chess.WHITE), "pv": [chess.Move.from_uci("g1f3")]},
+        {
+            "score": PovScore(Cp(0), chess.WHITE),
+            "wdl": PovWdl(Wdl(300, 400, 300), chess.WHITE),
+            "pv": [moves[0]],
+        },
+        {
+            "score": PovScore(Cp(0), chess.BLACK),
+            "wdl": PovWdl(Wdl(300, 400, 300), chess.BLACK),
+            "pv": [moves[1]],
+        },
+        {
+            "score": PovScore(Cp(0), chess.WHITE),
+            "wdl": PovWdl(Wdl(300, 400, 300), chess.WHITE),
+            "pv": [chess.Move.from_uci("g1f3")],
+        },
     ]
 
     step_by_step_analyzer(board, moves, engine_mock)

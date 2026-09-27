@@ -1,18 +1,63 @@
-import { useId } from 'react'
+type Orientation = 'white' | 'black'
 
-function center(square: string) {
-  return [(square.charCodeAt(0) - 97) * 100 + 50, (8 - Number(square[1])) * 100 + 50]
+type Props = {
+  pgnMove?: string
+  bestMove?: string | null
+  orientation: Orientation
 }
 
-export function MoveArrows({ played, best }: { played?: string; best?: string | null }) {
-  const id = useId().replace(/:/g, '')
-  return <svg className="move-arrows" viewBox="0 0 800 800" aria-label="Move arrows">
-    <defs>{['played', 'best'].map(kind => <marker key={kind} id={`${id}-${kind}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="2.5" markerHeight="2.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill={kind === 'played' ? '#fff3d8' : '#446ba8'} /></marker>)}</defs>
-    {([['best', best], ['played', played]] as const).map(([kind, uci]) => {
-      if (!uci || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci)) return null
-      const [x1, y1] = center(uci.slice(0, 2))
-      const [x2, y2] = center(uci.slice(2, 4))
-      return <line key={kind} x1={x1} y1={y1} x2={x2} y2={y2} stroke={kind === 'played' ? '#fff3d8' : '#446ba8'} strokeWidth={kind === 'played' ? 17 : 24} opacity=".72" markerEnd={`url(#${id}-${kind})`}><title>{kind === 'played' ? 'PGN move' : 'Stockfish best move'}: {uci}</title></line>
-    })}
-  </svg>
+function center(square: string, orientation: Orientation) {
+  const file = square.charCodeAt(0) - 97
+  const rank = Number(square[1]) - 1
+  const x = orientation === 'white' ? file : 7 - file
+  const y = orientation === 'white' ? 7 - rank : rank
+  return [x * 100 + 50, y * 100 + 50] as const
+}
+
+function arrowPoints(uci: string, orientation: Orientation, compact: boolean) {
+  const [x1, y1] = center(uci.slice(0, 2), orientation)
+  const [targetX, targetY] = center(uci.slice(2, 4), orientation)
+  const distance = Math.hypot(targetX - x1, targetY - y1)
+  const unitX = (targetX - x1) / distance
+  const unitY = (targetY - y1) / distance
+  const tipInset = compact ? 9 : 7
+  const headLength = compact ? 38 : 46
+  const halfWidth = compact ? 16 : 21
+  const tipX = targetX - unitX * tipInset
+  const tipY = targetY - unitY * tipInset
+  const baseX = tipX - unitX * headLength
+  const baseY = tipY - unitY * headLength
+  const perpendicularX = -unitY * halfWidth
+  const perpendicularY = unitX * halfWidth
+  return {
+    x1,
+    y1,
+    x2: baseX,
+    y2: baseY,
+    head: `${tipX},${tipY} ${baseX + perpendicularX},${baseY + perpendicularY} ${baseX - perpendicularX},${baseY - perpendicularY}`,
+  }
+}
+
+export function MoveArrows({ pgnMove, bestMove, orientation }: Props) {
+  const arrows = [
+    { key: 'pgn', move: pgnMove, label: 'Next PGN move', className: 'pgn-arrow' },
+    { key: 'best', move: bestMove, label: 'Stockfish best move', className: 'best-arrow' },
+  ] as const
+
+  return (
+    <svg className="move-arrows" viewBox="0 0 800 800" role="img" aria-label="Suggested move arrows">
+      <title>Next move suggestions</title>
+      {arrows.map(({ key, move, label, className }) => {
+        if (!move || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(move)) return null
+        const { head, ...line } = arrowPoints(move, orientation, key === 'best')
+        return (
+          <g className={className} key={key}>
+            <title>{label}: {move}</title>
+            <line {...line} />
+            <polygon points={head} />
+          </g>
+        )
+      })}
+    </svg>
+  )
 }

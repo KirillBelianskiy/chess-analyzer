@@ -25,11 +25,13 @@ export function PGNInput({ pgn, parsing, error, onChange, onFile, onParse }: Pro
   }
 
   return (
-    <section className="empty-state" aria-labelledby="pgn-title">
-      <div className="pgn-card">
-        <div className="card-heading">
-          <h1 id="pgn-title">PGN input</h1>
-        </div>
+    <main className="entry-screen" aria-labelledby="pgn-title">
+      <header className="entry-intro">
+        <h1 id="pgn-title">Review the game, move by move.</h1>
+        <p>Paste one PGN or choose a file. Stockfish analysis starts only when you ask for it.</p>
+      </header>
+
+      <div className="pgn-sheet">
         <div className="pgn-fields">
           <textarea
             value={pgn}
@@ -39,6 +41,16 @@ export function PGNInput({ pgn, parsing, error, onChange, onFile, onParse }: Pro
             spellCheck={false}
             disabled={parsing}
           />
+          <input
+            ref={fileInput}
+            className="visually-hidden"
+            type="file"
+            disabled={parsing}
+            accept=".pgn,text/plain,application/x-chess-pgn"
+            onChange={(event) => { receiveFile(event.target.files?.[0]); event.target.value = '' }}
+          />
+        </div>
+        <div className="import-actions">
           <button
             className={`file-dropzone ${dragging ? 'dragging' : ''}`}
             type="button"
@@ -49,31 +61,16 @@ export function PGNInput({ pgn, parsing, error, onChange, onFile, onParse }: Pro
             onDragLeave={() => setDragging(false)}
             onDrop={drop}
           >
-            <span>Drop a .pgn file or <u>choose file</u></span>
+            Choose PGN file
           </button>
-          <input
-            ref={fileInput}
-            className="visually-hidden"
-            type="file"
-            disabled={parsing}
-            accept=".pgn,text/plain,application/x-chess-pgn"
-            onChange={(event) => { receiveFile(event.target.files?.[0]); event.target.value = '' }}
-          />
+          <button className="primary-button" type="button" onClick={onParse} disabled={empty || parsing}>
+            {parsing && <span className="button-spinner" />}
+            {parsing ? 'Reading game…' : 'Open game'}
+          </button>
         </div>
       </div>
 
-      {error && <div className="error-message" role="alert"><strong>Couldn’t parse PGN</strong><span>{error}</span></div>}
-
-      <div className="parse-card">
-        <div>
-          <h2>1 · Parse PGN</h2>
-          <p>Validate notation and build the move timeline.</p>
-        </div>
-        <button className="primary-button" type="button" onClick={onParse} disabled={empty || parsing}>
-          {parsing && <span className="button-spinner" />}
-          {parsing ? 'Parsing…' : 'Parse'}
-        </button>
-      </div>
-    </section>
+      {error && <div className="error-message" role="alert"><strong>The game could not be opened.</strong><span>{error}</span></div>}
+    </main>
   )
 }
